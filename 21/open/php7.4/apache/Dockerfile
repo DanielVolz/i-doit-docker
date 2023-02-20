@@ -1,4 +1,4 @@
-FROM php:8.0-fpm-bullseye
+FROM php:7.4-apache-bullseye
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -44,20 +44,18 @@ RUN apt-get update; \
         apcu \
         memcached
 
-RUN cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini; \
-    rm /usr/local/etc/php-fpm.d/*.conf; \
-    mkdir -p /run/php; \
-    mkdir -p /var/www/html
-
 COPY php.ini /usr/local/etc/php/conf.d/99-i-doit.ini
-COPY php-fpm.ini /usr/local/etc/php-fpm.d/i-doit.conf
+
+COPY vhost.conf /etc/apache2/sites-available/i-doit.conf
+
 COPY entrypoint.sh is-installed.sh setup.sh /usr/local/bin/
+
 COPY CHECKSUMS /var/www/html
 
 WORKDIR /var/www/html
 
-ARG IDOIT_VERSION=1.21
-ARG IDOIT_ZIP_FILE=idoit-${IDOIT_VERSION}.zip
+ARG IDOIT_VERSION=1.19
+ARG IDOIT_ZIP_FILE=idoit-open-${IDOIT_VERSION}.zip
 ARG IDOIT_DOWNLOAD_URL=https://login.i-doit.com/downloads/${IDOIT_ZIP_FILE}
 
 RUN curl -fsSLO "${IDOIT_DOWNLOAD_URL}"; \
@@ -65,12 +63,16 @@ RUN curl -fsSLO "${IDOIT_DOWNLOAD_URL}"; \
     unzip -q "${IDOIT_ZIP_FILE}"; \
     rm "${IDOIT_ZIP_FILE}"; \
     rm CHECKSUMS; \
-    chown www-data:www-data -R /var/www/html/; \
+    chown www-data:www-data -R .; \
     find . -type d -name \* -exec chmod 775 {} \;; \
     find . -type f -exec chmod 664 {} \;; \
-    chmod 774 ./*.sh setup/*.sh
+    chmod 774 ./*.sh setup/*.sh; \
+    cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini; \
+    a2dissite 000-default; \
+    a2ensite i-doit; \
+    a2enmod rewrite
 
 VOLUME /var/www/html
 
 ENTRYPOINT ["entrypoint.sh"]
-CMD ["php-fpm"]
+CMD ["apache2-foreground"]

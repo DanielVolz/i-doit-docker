@@ -8,7 +8,7 @@ services:
     restart: always
     volumes:
       - db:/var/lib/mysql
-      - ./mariadb:/etc/mysql/conf.d
+      - ./mariadb/99-i-doit.cnf:/etc/mysql/mariadb.conf.d/99-i-doit.cnf
     networks:
       - backend
     env_file:
